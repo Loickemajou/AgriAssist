@@ -6,4 +6,6 @@ passlib
 bcrypt
 python-multipart
 google-genai
+google-cloud-texttospeech
+google-auth
 python-dotenv

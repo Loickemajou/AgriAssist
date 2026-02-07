@@ -8,6 +8,36 @@ import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 
+const LANGUAGE_OPTIONS = [
+  {
+    group: 'Major Languages',
+    options: [
+      { value: 'English', label: '🇬🇧 English' },
+      { value: 'Spanish', label: '🇪🇸 Español (Spanish)' },
+      { value: 'French', label: '🇫🇷 Français (French)' },
+      { value: 'Portuguese', label: '🇵🇹 Português (Portuguese)' },
+      { value: 'German', label: '🇩🇪 Deutsch (German)' },
+      { value: 'Hindi', label: '🇮🇳 हिन्दी (Hindi)' },
+      { value: 'Chinese', label: '🇨🇳 中文 (Chinese)' },
+    ],
+  },
+  {
+    group: 'African Languages',
+    options: [
+      { value: 'Swahili', label: '🇰🇪 Swahili (East Africa)' },
+      { value: 'Yoruba', label: '🇳🇬 Yoruba (West Africa)' },
+      { value: 'Amharic', label: '🇪🇹 Amharic (Ethiopia)' },
+      { value: 'Zulu', label: '🇿🇦 Zulu (South Africa)' },
+      { value: 'Hausa', label: '🇳🇬 Hausa (West Africa)' },
+      { value: 'Igbo', label: '🇳🇬 Igbo (Nigeria)' },
+      { value: 'Kinyarwanda', label: '🇷🇼 Kinyarwanda (Rwanda)' },
+      { value: 'Akan', label: '🇬🇭 Akan (Ghana)' },
+      { value: 'Twi', label: '🇬🇭 Twi (Ghana)' },
+      { value: 'Pidgin English', label: '🇳🇬 Pidgin English (West Africa)' },
+    ],
+  },
+]
+
 export default function RegisterPage() {
   const [first_name, setFistname] = useState('')
   const [last_name, setLastname] = useState('')
@@ -16,7 +46,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [language, setLanguage] = useState('en')
+  const [language, setLanguage] = useState('English')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
   const { login } = useAuthStore()
@@ -151,27 +181,15 @@ export default function RegisterPage() {
                 onChange={(e) => setLanguage(e.target.value)}
                 className="w-full bg-white/10 border border-gemini-green/30 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-gemini-green max-h-64"
               >
-                <optgroup label="Major Languages" className="bg-gemini-dark">
-                  <option value="en" className="bg-gemini-dark">🇬🇧 English</option>
-                  <option value="es" className="bg-gemini-dark">🇪🇸 Español (Spanish)</option>
-                  <option value="fr" className="bg-gemini-dark">🇫🇷 Français (French)</option>
-                  <option value="pt" className="bg-gemini-dark">🇵🇹 Português (Portuguese)</option>
-                  <option value="de" className="bg-gemini-dark">🇩🇪 Deutsch (German)</option>
-                  <option value="hi" className="bg-gemini-dark">🇮🇳 हिन्दी (Hindi)</option>
-                  <option value="zh" className="bg-gemini-dark">🇨🇳 中文 (Chinese)</option>
-                </optgroup>
-                <optgroup label="African Languages" className="bg-gemini-dark">
-                  <option value="sw" className="bg-gemini-dark">🇰🇪 Swahili (East Africa)</option>
-                  <option value="yo" className="bg-gemini-dark">🇳🇬 Yoruba (West Africa)</option>
-                  <option value="am" className="bg-gemini-dark">🇪🇹 Amharic (Ethiopia)</option>
-                  <option value="zu" className="bg-gemini-dark">🇿🇦 Zulu (South Africa)</option>
-                  <option value="ha" className="bg-gemini-dark">🇳🇪 Hausa (West Africa)</option>
-                  <option value="ig" className="bg-gemini-dark">🇳🇬 Igbo (Nigeria)</option>
-                  <option value="rw" className="bg-gemini-dark">🇷🇼 Kinyarwanda (Rwanda)</option>
-                  <option value="ak" className="bg-gemini-dark">🇬🇭 Akan (Ghana)</option>
-                  <option value="tw" className="bg-gemini-dark">🇬🇭 Twi (Ghana)</option>
-                  <option value="pi" className="bg-gemini-dark">🇳🇬 Pidgin English (West Africa)</option>
-                </optgroup>
+                {LANGUAGE_OPTIONS.map((group) => (
+                  <optgroup key={group.group} label={group.group} className="bg-gemini-dark">
+                    {group.options.map((opt) => (
+                      <option key={opt.value} value={opt.value} className="bg-gemini-dark">
+                        {opt.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
               </select>
               <p className="text-xs text-gray-400 mt-2">
                 💡 <span className="text-gemini-green font-semibold">Tip:</span> The language you select here will be the language you'll speak with the AI. You can change this anytime in your profile settings.

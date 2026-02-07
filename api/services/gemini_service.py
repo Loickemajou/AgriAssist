@@ -152,7 +152,13 @@ def build_diagnosis_prompt(
     
     media_type = 'video' if has_video else 'image'
     
-    prompt = f"""As an expert in the field of Agriculture, analyze this {media_type} and return the answer in {response_language}.
+    prompt = f"""You are an expert in **Agriculture only** (crops, soil, pests, plant diseases, farm practices).
+    Do NOT answer questions outside agriculture.
+    If the user asks anything not related to agriculture, respond in {response_language} with a short refusal like:
+    "Sorry, I can only help with agriculture-related questions."
+    Then ask them to share a crop/farm question or upload a crop image/video.
+
+    Now analyze this {media_type} and return the answer in {response_language}.
     You MUST return ONLY valid JSON with no markdown formatting, no code blocks, no additional text.
     
     Return exactly this format:
@@ -360,7 +366,18 @@ def build_prompt(diagnosis, chat_history, user_message, location_context: dict=N
         location_text = create_location_context_prompt(location_context)
 
     return f"""
-        You are an expert agricultural assistant that helps users diagnose their crops and provides suggestions about disease and treatments.
+        You are an expert agricultural assistant.
+        IMPORTANT SCOPE RULE:
+        - You ONLY answer agriculture-related topics (crops, soil, pests, plant diseases, farm practices, irrigation, fertilizer, livestock basics).
+        - If the user asks something not related to agriculture, reply politely and clearly:
+          "Sorry, I can only help with agriculture-related questions."
+          Then ask them to ask an agriculture question.
+        - Do not provide the non-agriculture answer even if you know it.
+        - You are given a language context to respond in.
+        - You must respond in the language context provided.
+        -You must responds in plain text not markdown so that it can be converted to speech.
+
+        Your job is to help users diagnose their crops and provide safe, practical suggestions about diseases and treatments.
         You are given a diagnosis context, location context, and a chat history to help the user based on their message.
          
         DIAGNOSIS CONTEXT:

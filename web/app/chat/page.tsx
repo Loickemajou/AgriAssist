@@ -65,7 +65,7 @@ export default function ChatPage() {
                 className="glass-effect p-6 rounded-xl"
               >
                 <h3 className="text-xl font-bold mb-2">
-                  {diagnosis.crop_name}
+                  {diagnosis.crop}
                 </h3>
                 <p className="text-gray-400 text-sm mb-4">
                   {diagnosis.description?.substring(0, 100)}...

@@ -1,13 +1,20 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { FiLogOut, FiUser, FiMenu } from 'react-icons/fi'
 import { useState } from 'react'
 
 export function Navbar() {
   const { isAuthenticated, logout } = useAuthStore()
+  const router = useRouter()
   const [isOpen, setIsOpen] = useState(false)
+
+  const handleLogout = () => {
+    logout()
+    router.push('/')
+  }
 
   return (
     <nav className="glass-effect sticky top-0 z-50 border-b border-gemini-green/20">
@@ -38,7 +45,7 @@ export function Navbar() {
                   <FiUser size={20} />
                 </button>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="p-2 hover:bg-red-500/20 rounded-lg transition text-red-400"
                 >
                   <FiLogOut size={20} />

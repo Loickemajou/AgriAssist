@@ -2,28 +2,32 @@ from databases.database import SessionLocal
 from databases.model import Chat, Diagnosis
 from pydantic import BaseModel, Field
 from fastapi import Depends, HTTPException, Path, APIRouter
+from fastapi.responses import StreamingResponse
 from starlette import status
-from typing import Annotated
+from typing import Annotated, AsyncGenerator, List
 from sqlalchemy.orm import Session
 from routers.user_admin.authentication import get_current_user
 from datetime import datetime
-from services.gemini_service import  translate_text, build_prompt, gemini_chat
-from services.audio_image_managment import upload_audio,text_to_speech, transcribe_audio
-from typing import List
+import asyncio
+
+from services.gemini_service import translate_text, build_prompt, gemini_chat
+from services.audio_image_managment import save_tts_audio, text_to_speech, transcribe_audio
+from services.language_map import normalize_language
 
 
+router = APIRouter(prefix="/chat", tags=["Chat"])
 
-router=APIRouter(prefix="/chat", tags=["Chat"])
 
 def get_db():
-    db=SessionLocal()
+    db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
-db_dependency=Annotated[Session, Depends(get_db)]
-user_dependency=Annotated[dict, Depends(get_current_user)]
+
+db_dependency = Annotated[Session, Depends(get_db)]
+user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 class ChatResponse(BaseModel):
@@ -34,18 +38,19 @@ class ChatResponse(BaseModel):
     created_at: datetime
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
 
 class ChatRequest(BaseModel):
-    message:str
+    message: str
    
 
 
 
 
 
-@router.get('/chat/{diagnosis_id}',response_model=List[ChatResponse])
-async def get_chat_history(user:user_dependency, db:db_dependency,diagnosis_id: int=Path(gt=0) ):
+@router.get('/{diagnosis_id}', response_model=List[ChatResponse])
+async def get_chat_history(user: user_dependency, db: db_dependency, diagnosis_id: int = Path(gt=0)):
     
     if user is None:
         raise HTTPException(status_code=401, detail='Authentification Failed')
@@ -66,8 +71,8 @@ async def get_chat_history(user:user_dependency, db:db_dependency,diagnosis_id: 
 
 
 
-@router.post('/chat/{diagnosi_id}', status_code=status.HTTP_201_CREATED)
-async def create_chat(user:user_dependency, db:db_dependency, chat_request:ChatRequest, diagnosis_id:int ):
+@router.post('/{diagnosis_id}', status_code=status.HTTP_201_CREATED)
+async def create_chat(user: user_dependency, db: db_dependency, chat_request: ChatRequest, diagnosis_id: int = Path(gt=0)):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
    
@@ -91,7 +96,7 @@ async def create_chat(user:user_dependency, db:db_dependency, chat_request:ChatR
 
     translated_input=user_text
 
-    if user.get('language').lower() not in ['English', 'en-US', 'english', 'en-GB']:
+    if user.get('language').lower() not in ['english', 'en-us', 'en-gb']:
         
         translated_input=translate_text(user_text, user.get('language'), "English")
 
@@ -112,21 +117,18 @@ async def create_chat(user:user_dependency, db:db_dependency, chat_request:ChatR
 
 
         
-    # I will have to impliment something where I am going to store the audio
+    # Convert AI response to speech and save as static audio
+    normalized_language = normalize_language(user.get('language'))
+    audio_bytes = text_to_speech(output_text, normalized_language)
+    audio_url = save_tts_audio(audio_bytes)
 
-    # audio_bytes = text_to_speech(output_text, user.get('language'))
-    # audio_url = upload_audio(audio_bytes)
-    audio_url="htis is to be done"
-
-
-    
     chat = Chat(
         user_id=user.get('id'),
         diagnosis_id=diagnosis_id,
         response=output_text,
         audio_url_output=audio_url,
         message=chat_request.message,
-        created_at=datetime.now()
+        created_at=datetime.now(),
     )
 
     db.add(chat)
@@ -135,17 +137,17 @@ async def create_chat(user:user_dependency, db:db_dependency, chat_request:ChatR
     return {
         "text": output_text,
         "audio_url": audio_url,
-        "confidence": gemini_result["confidence"]
+        "confidence": gemini_result["confidence"],
     }
 
 
-@router.put('/chat/{diagnosis_id}/{chat_id}',status_code=status.HTTP_204_NO_CONTENT)
-async def update_chat(user:user_dependency, db:db_dependency, chat_request:ChatRequest, diagnosis_id:int=Path(gt=0),chat_id:int=Path(gt=0)):
+@router.put('/{diagnosis_id}/{chat_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def update_chat(user: user_dependency, db: db_dependency, chat_request: ChatRequest, diagnosis_id: int = Path(gt=0), chat_id: int = Path(gt=0)):
 
     if user is None:
         raise HTTPException(status_code=401, detail='Authentication Failed')
 
-    diagnosis_model=db.query(Diagnosis).filter(diagnosis_id==diagnosis_id, Diagnosis.user_id==user.get('id')).first()
+    diagnosis_model = db.query(Diagnosis).filter(diagnosis_id == diagnosis_id, Diagnosis.user_id == user.get('id')).first()
 
     if diagnosis_model is None:
         raise HTTPException(404, "Diagnosis not found")
@@ -166,7 +168,7 @@ async def update_chat(user:user_dependency, db:db_dependency, chat_request:ChatR
 
     translated_input=user_text
 
-    if user.get('language').lower() not in ['English', 'en-US', 'english', 'en-GB']:
+    if user.get('language').lower() not in ['english', 'en-us', 'en-gb']:
         
         translated_input=translate_text(user_text, user.get('language'), "English")
 
@@ -184,16 +186,14 @@ async def update_chat(user:user_dependency, db:db_dependency, chat_request:ChatR
 
         output_text=gemini_result['text']
     
-    # Convert AI response to speech
-  
-    # audio_bytes = text_to_speech(output_text, user.get('language'))
-    # audio_url = upload_audio(audio_bytes)
-    audio_url="htis is to be done"
+    # Convert AI response to speech and save as static audio
+    normalized_language = normalize_language(user.get('language'))
+    audio_bytes = text_to_speech(output_text, normalized_language)
+    audio_url = save_tts_audio(audio_bytes)
 
-
-    chat_model.message=chat_request.message
-    chat_model.response=output_text
-    chat_model.audio_url_output=audio_url
+    chat_model.message = chat_request.message
+    chat_model.response = output_text
+    chat_model.audio_url_output = audio_url
     
     chat_model.created_at = datetime.now()
 
@@ -203,13 +203,16 @@ async def update_chat(user:user_dependency, db:db_dependency, chat_request:ChatR
     return {
         "text": output_text,
         "audio_url": audio_url,
-        "confidence": gemini_result["confidence"]
+        "confidence": gemini_result["confidence"],
     }
 
 
-@router.delete('/chat/{diagnosis_id}/{chat_id}',status_code=status.HTTP_204_NO_CONTENT)
-async def delete_todo(user: user_dependency,db:db_dependency,
-                      chat_id: int=Path(gt=0),diagnosis_id: int=Path(gt=0)):
+
+
+
+@router.delete('/{diagnosis_id}/{chat_id}', status_code=status.HTTP_204_NO_CONTENT)
+async def delete_todo(user: user_dependency, db: db_dependency,
+                      chat_id: int = Path(gt=0), diagnosis_id: int = Path(gt=0)):
     
     if user is None:
         raise HTTPException(status_code=401, detail='Authentification Failed')

@@ -22,9 +22,11 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 audio_directory=os.path.join(BASE_DIR, "static_audio")
 image_directory=os.path.join(BASE_DIR, "static_image")
+video_directory=os.path.join(BASE_DIR, "static_video")
 # ensure static directories exist
 os.makedirs(audio_directory, exist_ok=True)
 os.makedirs(image_directory, exist_ok=True)
+os.makedirs(video_directory, exist_ok=True)
 
 
 
@@ -35,6 +37,7 @@ def healthy():
 
 app.mount("/static_image", StaticFiles(directory=image_directory), name="static_image")
 app.mount("/static_audio", StaticFiles(directory=audio_directory), name="static_audio")
+app.mount("/static_video", StaticFiles(directory=video_directory), name="static_video")
 
 Base.metadata.create_all(bind=engine)
 

@@ -19,14 +19,43 @@ apiClient.interceptors.request.use((config) => {
 })
 
 export const authAPI = {
-  login: (username: string, password: string) =>
-    apiClient.post('/auth/token', {username, password }),
-  register: (first_name: string, last_name: string, username: string, role: string, email: string, password: string, language: string) =>
-    apiClient.post('/auth/register', {first_name, last_name, username, role, email, password, language }),
+  login: (username: string, password: string) => {
+    const formData = new URLSearchParams()
+    formData.append('username', username)
+    formData.append('password', password)
+
+    return apiClient.post('/auth/token', formData, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+    })
+  },
+
+  register: (
+    first_name: string,
+    last_name: string,
+    username: string,
+    role: string,
+    email: string,
+    password: string,
+    language: string
+  ) =>
+    apiClient.post('/auth/register', {
+      first_name,
+      last_name,
+      username,
+      role,
+      email,
+      password,
+      language,
+    }),
+
   logout: () => {
     localStorage.removeItem('access_token')
   },
 }
+
+
 
 export const diagnosisAPI = {
   getDiagnoses: () => apiClient.get('/diagnosis/'),
@@ -48,7 +77,7 @@ export const chatAPI = {
   getChats: (diagnosisId: number) =>
     apiClient.get(`/chat/diagnosis/${diagnosisId}`),
   sendMessage: (diagnosisId: number, message: string) =>
-    apiClient.post('/chat/private', {
+    apiClient.post(`/chat/${diagnosisId}`, {
       diagnosis_id: diagnosisId,
       message,
     }),

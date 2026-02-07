@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 // API Response interfaces
 export interface DiagnosisResponse {
   id: number
-  crop_name: string
+  crop: string
   description: string
   image_url?: string
   audio_url?: string

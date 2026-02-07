@@ -119,6 +119,19 @@ async def create_user(create_user_request: CreatUserRequest, db:db_dependency):
 
     db.add(new_user)
     db.commit()
+    
+    token = create_access_token(
+        new_user.username,
+        new_user.id,
+        new_user.role,
+        new_user.language,
+        timedelta(minutes=20),
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+    }
 
 
 @router.post('/token', response_model=Token)

@@ -11,17 +11,7 @@ from services.gemini_service import analyze_diagnosis
 from services.audio_image_managment import transcribe_audio
 from services.language_map import normalize_language
 import os
-from services.audio_image_managment import upload_audio, upload_image,upload_video
-
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-audio_directory=os.path.join(BASE_DIR, "static_audio")
-image_directory=os.path.join(BASE_DIR, "static_image")
-video_directory=os.path.join(BASE_DIR, "static_video")
-# ensure static directories exist
-os.makedirs(audio_directory, exist_ok=True)
-os.makedirs(image_directory, exist_ok=True)
-os.makedirs(video_directory, exist_ok=True)
+from services.audio_image_managment import upload_audio, upload_image, upload_video
 
 
 router=APIRouter(prefix="/diagnosis", tags=['Diagnosis'])
@@ -46,6 +36,12 @@ async def real_all_diagnosis(user:user_dependency, db: db_dependency):
         raise HTTPException(status_code=401, detail='Authentification Failed')
     return db.query(Diagnosis).filter(Diagnosis.user_id==user.get('id')).all()
 
+@router.get('/{diagnosis_id}', status_code=status.HTTP_200_OK)
+async def real_all_diagnosis(user:user_dependency, db: db_dependency,diagnosis_id:int=Path(gt=0)):
+    if user is None:
+        raise HTTPException(status_code=401, detail='Authentification Failed')
+    return db.query(Diagnosis).filter(Diagnosis.user_id==user.get('id')).filter(Diagnosis.id==diagnosis_id).first()
+
 # @router.get("/id/{diagnosis_id}", status_code=status.HTTP_200_OK)
 # async def read_diagnosis(user:user_dependency,db: db_dependency, diagnosis_id:int=Path(gt=0)):
 #     if user is None:
@@ -56,7 +52,7 @@ async def real_all_diagnosis(user:user_dependency, db: db_dependency):
 #         return diagnosis_model
 #     raise HTTPException(status_code=404, detail="Diagnosis not found.")
 
-@router.get("/diagnosis/crop/{crop}", status_code=status.HTTP_200_OK)
+@router.get("/crop/{crop}", status_code=status.HTTP_200_OK)
 async def read_diagnosis(user:user_dependency,db: db_dependency, crop:str):
     if user is None:
         raise HTTPException(status_code=401, detail='Authentification Failed')
@@ -68,7 +64,7 @@ async def read_diagnosis(user:user_dependency,db: db_dependency, crop:str):
     raise HTTPException(status_code=404, detail="Diagnosis not found.")
 
 
-@router.post('/diagnosis', status_code=status.HTTP_201_CREATED)
+@router.post('/', status_code=status.HTTP_201_CREATED)
 async def create_diagnosis(
     user: user_dependency,
     db: db_dependency,
@@ -86,23 +82,26 @@ async def create_diagnosis(
     # I will have to impliment and image management heree
     
     image_url = None
+    image_file_path = None
     if image:
-        image_url= await upload_image(image)
+        image_url, image_file_path = await upload_image(image)
         
 
     audio_bytes=None
     audio_url=None
+    audio_file_path = None
     if audio:
-        audio_url, audio_bytes= await upload_audio(audio)
+        audio_url, audio_bytes, audio_file_path = await upload_audio(audio)
 
     video_url=None 
+    video_file_path = None
     if video:
-        video_url=await upload_video(video)
+        video_url, video_file_path = await upload_video(video)
 
     # Analyze diagnosis if image or audio provided, with location context
     result = None
     location_context = None
-    if image_url or audio_bytes:
+    if image_file_path or video_file_path or audio_bytes:
         
         from services.location_service import get_region_from_coordinates
         
@@ -110,16 +109,25 @@ async def create_diagnosis(
         if lat and lng:
             location_context = get_region_from_coordinates(lat, lng)
         
-        result = analyze_diagnosis(image_url=image_url,video_url=video_url, audio_bytes=audio_bytes, location_context=location_context,language=user.get('language'))
+        result = analyze_diagnosis(
+            image_url=image_file_path,
+            video_url=video_file_path,
+            audio_bytes=audio_bytes,
+            location_context=location_context,
+            language=user.get('language'),
+        )
+
+    if result is None:
+        result = {}
 
     diagnosis_model = Diagnosis(
         user_id=user["id"],
-        crop=result.get('crop', 'unknown') if not None else crop ,
+        crop=result.get('crop', crop) if crop is not None else result.get('crop', 'unknown'),
         image_url=image_url,
         audio_url=audio_url,
         disease=result.get('disease', 'unknown'),
         treatment=result.get('treatment', 'unknown'),
-        confidence=result.get('confidence', '0') ,
+        confidence=result.get('confidence', 0.0),
         video_url=video_url,
         lat=lat,
         lng=lng,
@@ -133,7 +141,7 @@ async def create_diagnosis(
     return diagnosis_model, result
 
 
-@router.put('/diagnosis/{diagnosis_id}',status_code=status.HTTP_204_NO_CONTENT)
+@router.put('/{diagnosis_id}',status_code=status.HTTP_204_NO_CONTENT)
 async def update_diagnosis(user:user_dependency, db:db_dependency, crop: str = Form(...),recovered: str = Form(...),diagnosis_id:int=Path(gt=0),
                            image: UploadFile=File(...), audio: UploadFile=File(None),video:UploadFile=File(None),lat: float = Form(None),lng: float = Form(None)
     ):
@@ -148,22 +156,25 @@ async def update_diagnosis(user:user_dependency, db:db_dependency, crop: str = F
     
     
     image_url = None
+    image_file_path = None
     if image:
-        image_url= await upload_image(image)
+        image_url, image_file_path = await upload_image(image)
         
 
     audio_bytes=None
     audio_url=None
+    audio_file_path = None
     if audio:
-        audio_url, audio_bytes= await upload_audio(audio)
+        audio_url, audio_bytes, audio_file_path = await upload_audio(audio)
 
     video_url=None 
+    video_file_path = None
     if video:
-        video_url=await upload_video(video)
+        video_url, video_file_path = await upload_video(video)
     # Analyze diagnosis if image or audio provided, with location context
     result = None
     location_context = None
-    if image_url or audio_bytes:
+    if image_file_path or video_file_path or audio_bytes:
         
         from services.location_service import get_region_from_coordinates
         
@@ -171,27 +182,36 @@ async def update_diagnosis(user:user_dependency, db:db_dependency, crop: str = F
         if lat and lng:
             location_context = get_region_from_coordinates(lat, lng)
         
-        result = analyze_diagnosis(image_url=image_url,video_url=video_url,  audio_bytes=audio_bytes, location_context=location_context, language=user.get('language'))
+        result = analyze_diagnosis(
+            image_url=image_file_path,
+            video_url=video_file_path,
+            audio_bytes=audio_bytes,
+            location_context=location_context,
+            language=user.get('language'),
+        )
+
+    if result is None:
+        result = {}
 
     
     
-    diagnosis_model.image_url=image_url
-    diagnosis_model.crop=result.get('crop', 'unknown') if not None else crop
-    diagnosis_model.disease=result.get('disease', 'unknown')
-    diagnosis_model.treatment=result.get('treatment', 'unknown')
-    diagnosis_model.confidence=result.get('confidence', '0')
-    diagnosis_model.audio_url=audio_url
-    diagnosis_model.video_url=video_url
-    diagnosis_model.lat=lat
-    diagnosis_model.lng=lng
-    diagnosis_model.recovered=recovered
-    diagnosis_model.created_at=datetime.utcnow()
+    diagnosis_model.image_url = image_url
+    diagnosis_model.crop = result.get('crop', crop) if crop is not None else result.get('crop', 'unknown')
+    diagnosis_model.disease = result.get('disease', 'unknown')
+    diagnosis_model.treatment = result.get('treatment', 'unknown')
+    diagnosis_model.confidence = result.get('confidence', 0.0)
+    diagnosis_model.audio_url = audio_url
+    diagnosis_model.video_url = video_url
+    diagnosis_model.lat = lat
+    diagnosis_model.lng = lng
+    diagnosis_model.recovered = recovered
+    diagnosis_model.created_at = datetime.utcnow()
 
     db.add(diagnosis_model)
     db.commit()
 
 
-@router.delete('/diagnosis/{diagnosis_id}',status_code=status.HTTP_204_NO_CONTENT)
+@router.delete('/{diagnosis_id}',status_code=status.HTTP_204_NO_CONTENT)
 async def delete_diagnosis(user: user_dependency,db:db_dependency,
                       diagnosis_id: int=Path(gt=0)):
     
@@ -212,19 +232,7 @@ async def transcribe_audio_endpoint(
     file: UploadFile = File(...),
     language: str = Query(default="English")
 ):
-    """
-    Receive audio from frontend, transcribe with Gemini API
     
-    Args:
-        file: Audio file uploaded from frontend
-        language: Language the audio is in (e.g., "Twi", "Yoruba", "English")
-    
-    Returns:
-        {
-            "text": "transcribed text",
-            "confidence": 0.95
-        }
-    """
     try:
         # Read audio bytes from uploaded file
         audio_bytes = await file.read()
@@ -234,25 +242,16 @@ async def transcribe_audio_endpoint(
         
         # Normalize language (map display name to canonical code) and send to Gemini
         language_code = normalize_language(language)
-        # result = transcribe_audio(audio_bytes, language=language_code)
-        result={'text':"this to be done", 'langauge_used':"this is to be done"}
-
-        # transcribe_audio returns a dict with text and confidence
-        if isinstance(result, dict):
-            transcribed_text = result.get('text', '')
-            language_used = result.get('language_used', 'auto')
         
-        else:
-            transcribed_text = str(result)
-            language_used = 'auto'
-      
+        transcribed_text = transcribe_audio(audio_bytes, language=language_code)
+        
 
         if not transcribed_text:
             raise HTTPException(status_code=400, detail="Failed to transcribe audio - received empty response")
-
+        
         return {
             "text": transcribed_text,
-            "language_used": language_used
+            "language_used": language_code
         }
     except HTTPException:
         raise
