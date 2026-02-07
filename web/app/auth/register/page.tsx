@@ -12,31 +12,27 @@ const LANGUAGE_OPTIONS = [
   {
     group: 'Major Languages',
     options: [
-      { value: 'English', label: '🇬🇧 English' },
-      { value: 'Spanish', label: '🇪🇸 Español (Spanish)' },
-      { value: 'French', label: '🇫🇷 Français (French)' },
-      { value: 'Portuguese', label: '🇵🇹 Português (Portuguese)' },
-      { value: 'German', label: '🇩🇪 Deutsch (German)' },
-      { value: 'Hindi', label: '🇮🇳 हिन्दी (Hindi)' },
-      { value: 'Chinese', label: '🇨🇳 中文 (Chinese)' },
+      { value: 'en-US', label: '🇬🇧 English (US)' },
+      { value: 'es-ES', label: '🇪🇸 Español (Spain)' },
+      { value: 'fr-FR', label: '🇫🇷 Français (France)' },
+      { value: 'pt-BR', label: '🇵🇹 Português (Brazil)' },
+      { value: 'de-DE', label: '🇩🇪 Deutsch (Germany)' },
+      { value: 'hi-IN', label: '🇮🇳 हिन्दी (India)' },
+      { value: 'zh-CN', label: '🇨🇳 中文 (China)' },
     ],
   },
   {
     group: 'African Languages',
     options: [
-      { value: 'Swahili', label: '🇰🇪 Swahili (East Africa)' },
-      { value: 'Yoruba', label: '🇳🇬 Yoruba (West Africa)' },
-      { value: 'Amharic', label: '🇪🇹 Amharic (Ethiopia)' },
-      { value: 'Zulu', label: '🇿🇦 Zulu (South Africa)' },
-      { value: 'Hausa', label: '🇳🇬 Hausa (West Africa)' },
-      { value: 'Igbo', label: '🇳🇬 Igbo (Nigeria)' },
-      { value: 'Kinyarwanda', label: '🇷🇼 Kinyarwanda (Rwanda)' },
-      { value: 'Akan', label: '🇬🇭 Akan (Ghana)' },
-      { value: 'Twi', label: '🇬🇭 Twi (Ghana)' },
-      { value: 'Pidgin English', label: '🇳🇬 Pidgin English (West Africa)' },
+      { value: 'sw-KE', label: '🇰🇪 Swahili (Kenya)' },
+      { value: 'ha-NG', label: '🇳🇬 Hausa (Nigeria)' },
+      { value: 'yo-NG', label: '🇳🇬 Yoruba (Nigeria)' },
+      { value: 'zu-ZA', label: '🇿🇦 Zulu (South Africa)' },
+      { value: 'ig-NG', label: '🇳🇬 Igbo (Nigeria)' },
     ],
   },
 ]
+
 
 export default function RegisterPage() {
   const [first_name, setFistname] = useState('')
