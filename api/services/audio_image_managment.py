@@ -123,8 +123,8 @@ def text_to_speech(text, language):
     )
     audio_config = texttospeech.AudioConfig(
             audio_encoding=texttospeech.AudioEncoding.MP3,
-            speaking_rate=1.0,  # Normal speed
-            pitch=0.0  # Normal pitch
+            speaking_rate=1.0,  
+            pitch=0.0 
         )
     
     response = client_tts.synthesize_speech(

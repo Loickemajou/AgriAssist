@@ -87,6 +87,21 @@ LANGUAGE_MAP = {
     "Yoruba": "yo-NG",
     # Z
     "Zulu": "zu-ZA",
+    "Hausa": "ha-NG",
+    "Igbo": "ig-NG",
+    "Kinyarwanda": "rw-RW",
+    "Akan": "ak-GH",
+    "Twi": "ak-GH",
+    "Pidgin English": "pcm-NG",
+    "Mandarin": "cmn-CN",
+    "Cantonese": "yue-HK",
+    "Arabic": "ar-SA",
+    "Hindi": "hi-IN",
+    "Bengali": "bn-IN",
+    "Tamil": "ta-IN",
+    "Telugu": "te-IN",
+    "Urdu": "ur-PK",
+    "Punjabi": "pa-IN"
 }
 
 
