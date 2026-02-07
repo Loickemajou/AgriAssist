@@ -92,13 +92,19 @@ How to Run the Frontend (Web App)
    ```bash
    npm install
    ```
+3. **Set up .env.local environment**
+   - Create a file called .env.local file inside
+   - Place the backend local host like this:
+     ```bash
+     NEXT_PUBLIC_API_URL=http://localhost:8000
+     ```
 
-3. **Start the dev server**
+5. **Start the dev server**
    ```bash
    npm run dev
    ```
 
-4. **Open the app in the browser**
+6. **Open the app in the browser**
    - Go to `http://localhost:3000`
 
 What the Frontend Does
