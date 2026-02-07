@@ -47,6 +47,7 @@ How to Run the Backend (API)
    - Put your key inside like this:
      ```text
      GEMINI_API_KEY=your_key_here
+     GOOGLE_CLOUD_CREDENTIALS_JSON=your json_content_here
      ```
 
 5. **Start the backend server**
