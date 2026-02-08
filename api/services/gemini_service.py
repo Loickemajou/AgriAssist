@@ -9,7 +9,7 @@ from typing import List, Optional,Dict
 from pathlib import Path
 import mimetypes
 import json
-
+from services.audio_image_managment import transcribe_audio
 load_dotenv()
 
 GEMINI_KEY=os.getenv("GEMINI_API_KEY")
@@ -28,6 +28,12 @@ client=genai.Client(api_key=GEMINI_KEY,http_options={'api_version': 'v1alpha'})
 def translate_text(text: str, source:str, dest:str):
     prompts=f"""You are a professional tranlator. You actually have a good mastery of all the languages in the world.
     You are given a text in {source}. Translate this text to {dest}: {text}
+
+    Just return the translated text, no markdown, no code blocks, no additional text.
+    strictly just the text, it should not show that it was actually translated, but only the translated text should be given!!!
+
+    It should always remove phrases starting by "Here is the translation in {dest}". It should just give the text!!!
+
     """
     
     response=client.models.generate_content(
@@ -53,29 +59,24 @@ from typing import List
 
 
 def clean_gemini_response(response):
-    # Clean the response text
     response_text = response.text.strip()
         
-    # Remove markdown code blocks if present
     if response_text.startswith('```'):
-        # Extract JSON from markdown code block
         json_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
         if json_match:
             response_text = json_match.group(1)
         else:
-            # Try to find JSON object without code blocks
             json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
             if json_match:
                 response_text = json_match.group(0)
         
-    print(f"Cleaned response: {response_text}")  # Debug
+    print(f"Cleaned response: {response_text}")  
     result = json.loads(response_text)
 
     return result
 
 
 def validate_media_input(image_url: Optional[str], video_url: Optional[str]):
-    """Validate that at least one media file is provided"""
     if not image_url and not video_url:
         return {
             "crop": "unknown",
@@ -87,12 +88,6 @@ def validate_media_input(image_url: Optional[str], video_url: Optional[str]):
     return None
 
 def read_media_file(file_path: str, default_mime: str):
-    """
-    Read media file and determine MIME type
-    
-    Returns:
-        Tuple of (file_data, mime_type)
-    """
     with open(file_path, 'rb') as f:
         file_data = f.read()
     
@@ -100,15 +95,8 @@ def read_media_file(file_path: str, default_mime: str):
     return file_data, mime_type
 
 def prepare_media_parts(image_url: Optional[str] = None,video_url: Optional[str] = None):
-    """
-    Prepare media parts for Gemini API
-    
-    Returns:
-        List of Part objects for images/videos
-    """
     content_parts = []
     
-    # Add video if provided
     if video_url:
         try:
             video_data, video_mime_type = read_media_file(video_url, "video/mp4")
@@ -123,7 +111,6 @@ def prepare_media_parts(image_url: Optional[str] = None,video_url: Optional[str]
             print(f"Error reading video: {e}")
             raise ValueError(f"Error reading video file: {str(e)}")
     
-    # Add image if provided
     if image_url:
         try:
             image_data, image_mime_type = read_media_file(image_url, "image/jpeg")
@@ -148,7 +135,6 @@ def build_diagnosis_prompt(
     location_context: Optional[Dict] = None,
     source_language: Optional[str] = None
 ) -> str:
-    """Build the diagnosis prompt with all context"""
     
     media_type = 'video' if has_video else 'image'
     
@@ -171,13 +157,11 @@ def build_diagnosis_prompt(
     
     IMPORTANT: Return ONLY the JSON object in {response_language}, nothing else.
     """
-    # Add audio transcription
     if audio_bytes:
         transcribed_audio = transcribe_audio(audio_bytes, response_language)
         english_text = translate_text(transcribed_audio, source_language or 'auto', 'english')
         prompt += f"\n\nAlso consider the described symptoms: {english_text}."
     
-    # Add location context
     if location_context:
         from services.location_service import create_location_context_prompt
         location_prompt = create_location_context_prompt(location_context)
@@ -190,10 +174,7 @@ def build_diagnosis_prompt(
 
 
 
-# ==================== GEMINI API CALLS ====================
-
 def call_gemini_initial_analysis(content_parts: List[types.Part]) -> Dict:
-    """Call Gemini for initial diagnosis"""
     response = client.models.generate_content(
         model="gemini-3-pro-preview",
         contents=content_parts
@@ -201,7 +182,6 @@ def call_gemini_initial_analysis(content_parts: List[types.Part]) -> Dict:
     
     result = clean_gemini_response(response)
     
-    # Ensure confidence is float
     if 'confidence' in result:
         result['confidence'] = float(result['confidence'])
     
@@ -215,7 +195,6 @@ def call_gemini_web_search(
     response_language: str,
     has_video: bool
 ) -> Dict:
-    """Call Gemini with web search for verification"""
     
     class MatchResult(BaseModel):
         crop: str = Field(description="The name of the crop.")
@@ -235,7 +214,6 @@ def call_gemini_web_search(
     Respond in {response_language}.
     """
     
-    # Add search prompt to content parts
     search_parts = content_parts + [types.Part(text=content)]
     
     response = client.models.generate_content(
@@ -259,10 +237,7 @@ def call_gemini_web_search(
         return initial_result
 
 
-# ==================== ERROR HANDLING ====================
-
 def create_error_response(error_type: str, error: Exception):
-    """Create standardized error response"""
     print(f"{error_type}: {error}")
     if error_type == "JSON decode error":
         import traceback
@@ -277,7 +252,6 @@ def create_error_response(error_type: str, error: Exception):
     }
 
 
-# ==================== MAIN FUNCTION ====================
 
 def analyze_diagnosis(
     image_url: Optional[str] = None,
@@ -287,32 +261,18 @@ def analyze_diagnosis(
     location_context: dict = None,
     language: str = None
 ):
-    """
-    Analyze crop diagnosis with location-aware context
     
-    Args:
-        image_url: URL/path to crop image (optional)
-        video_url: URL/path to crop video (optional)
-        source: Language source (for translation)
-        audio_bytes: Audio data if provided
-        location_context: Dictionary with region info from location_service
-        language: Response language
-    """
-    
-    # 1. Validate input
     validation_error = validate_media_input(image_url, video_url)
     if validation_error:
         return validation_error
     
     response_language = language or "English"
     
-    # 2. Prepare media content
     try:
         media_parts = prepare_media_parts(image_url, video_url)
     except ValueError as e:
         return create_error_response("Media preparation error", e)
     
-    # 3. Build prompt
     prompt = build_diagnosis_prompt(
         response_language=response_language,
         has_video=bool(video_url),
@@ -321,10 +281,8 @@ def analyze_diagnosis(
         source_language=source
     )
     
-    # 4. Combine media and prompt
     content_parts = media_parts + [types.Part(text=prompt)]
     
-    # 5. Call Gemini for initial analysis
     try:
         result = call_gemini_initial_analysis(content_parts)
     except json.JSONDecodeError as e:
@@ -332,7 +290,6 @@ def analyze_diagnosis(
     except Exception as e:
         raise Exception(f"Analysis error: {e}")
     
-    # 6. If confidence is low, verify with web search
     if result.get('confidence', 0) < 0.5:
         try:
             result = call_gemini_web_search(
@@ -344,8 +301,7 @@ def analyze_diagnosis(
             )
         except Exception as e:
             print(f"Web search failed: {e}")
-            # Continue with original result
-    
+
     return result
 
 
@@ -401,6 +357,8 @@ def build_prompt(diagnosis, chat_history, user_message, location_context: dict=N
 
         USER QUESTION:
         {user_message}
+
+        Strictly respond in the language provided, no markdown, just the language. This should be very important!!!!
          
         """
 

@@ -87,13 +87,10 @@ async def create_chat(user: user_dependency, db: db_dependency, chat_request: Ch
     
     chat_history=db.query(Chat).filter(Chat.diagnosis_id==diagnosis_id).order_by(Chat.created_at.asc()).all()
     
-    # Frontend already transcribed audio to text
+
     user_text = chat_request.message
 
     
-
-    user_text=chat_request.message
-
     translated_input=user_text
 
     if user.get('language').lower() not in ['english', 'en-us', 'en-gb']:
@@ -117,7 +114,7 @@ async def create_chat(user: user_dependency, db: db_dependency, chat_request: Ch
 
 
         
-    # Convert AI response to speech and save as static audio
+
     normalized_language = normalize_language(user.get('language'))
     audio_bytes = text_to_speech(output_text, normalized_language)
     audio_url = save_tts_audio(audio_bytes)
@@ -186,7 +183,7 @@ async def update_chat(user: user_dependency, db: db_dependency, chat_request: Ch
 
         output_text=gemini_result['text']
     
-    # Convert AI response to speech and save as static audio
+
     normalized_language = normalize_language(user.get('language'))
     audio_bytes = text_to_speech(output_text, normalized_language)
     audio_url = save_tts_audio(audio_bytes)

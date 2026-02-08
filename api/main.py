@@ -23,7 +23,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 audio_directory=os.path.join(BASE_DIR, "static_audio")
 image_directory=os.path.join(BASE_DIR, "static_image")
 video_directory=os.path.join(BASE_DIR, "static_video")
-# ensure static directories exist
+
 os.makedirs(audio_directory, exist_ok=True)
 os.makedirs(image_directory, exist_ok=True)
 os.makedirs(video_directory, exist_ok=True)
@@ -49,12 +49,3 @@ app.include_router(chat_router)
 app.include_router(diagnosis_router)
 
 
-{
-  "email": "loicfaleu@gamil.com",
-  "username": "lofaleu",
-  "first_name": "Loic",
-  "last_name": "Faleu",
-  "password": "1234",
-  "role": "user",
-  "language": "English"
-}

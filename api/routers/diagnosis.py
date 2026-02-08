@@ -79,7 +79,7 @@ async def create_diagnosis(
         raise HTTPException(status_code=401, detail='Authentication Failed')
     
 
-    # I will have to impliment and image management heree
+
     
     image_url = None
     image_file_path = None
@@ -98,14 +98,12 @@ async def create_diagnosis(
     if video:
         video_url, video_file_path = await upload_video(video)
 
-    # Analyze diagnosis if image or audio provided, with location context
     result = None
     location_context = None
     if image_file_path or video_file_path or audio_bytes:
         
         from services.location_service import get_region_from_coordinates
         
-        # Get location context if available
         if lat and lng:
             location_context = get_region_from_coordinates(lat, lng)
         
@@ -171,14 +169,12 @@ async def update_diagnosis(user:user_dependency, db:db_dependency, crop: str = F
     video_file_path = None
     if video:
         video_url, video_file_path = await upload_video(video)
-    # Analyze diagnosis if image or audio provided, with location context
     result = None
     location_context = None
     if image_file_path or video_file_path or audio_bytes:
         
         from services.location_service import get_region_from_coordinates
         
-        # Get location context if available
         if lat and lng:
             location_context = get_region_from_coordinates(lat, lng)
         
@@ -234,13 +230,11 @@ async def transcribe_audio_endpoint(
 ):
     
     try:
-        # Read audio bytes from uploaded file
         audio_bytes = await file.read()
         
         if not audio_bytes:
             raise HTTPException(status_code=400, detail="No audio data received")
-        
-        # Normalize language (map display name to canonical code) and send to Gemini
+                
         language_code = normalize_language(language)
         
         transcribed_text = transcribe_audio(audio_bytes, language=language_code)

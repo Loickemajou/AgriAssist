@@ -19,13 +19,11 @@ else:
 
 client=genai.Client(api_key=GEMINI_KEY)
 
-# Initialize TTS client with credentials from env var or file
 def _init_tts_client():
     """Initialize TextToSpeechClient using credentials from env var or file."""
     credentials_json = os.getenv("GOOGLE_CLOUD_CREDENTIALS_JSON")
     
     if credentials_json:
-        # Parse JSON from environment variable (for Render/production)
         try:
             creds_dict = json.loads(credentials_json)
             credentials = service_account.Credentials.from_service_account_info(creds_dict)
@@ -34,7 +32,6 @@ def _init_tts_client():
             print(f"Warning: Failed to parse GOOGLE_CLOUD_CREDENTIALS_JSON: {e}")
             print("Falling back to default credentials...")
     
-    # Fallback: use default credentials (for local dev with GOOGLE_APPLICATION_CREDENTIALS file)
     return texttospeech.TextToSpeechClient()
 
 client_tts = _init_tts_client()
@@ -42,7 +39,6 @@ client_tts = _init_tts_client()
 
 load_dotenv()
 
-# Save uploads in the API root so they match the StaticFiles mounts in `api/main.py`
 API_DIR = Path(__file__).resolve().parent.parent  # .../api
 audio_directory = API_DIR / "static_audio"
 image_directory = API_DIR / "static_image"
@@ -144,7 +140,7 @@ def transcribe_audio(audio_bytes:bytes, language:str):
             contents=[
                 types.Part.from_bytes(
                     data=audio_bytes,
-                    mime_type="audio/wav"  # or audio/mpeg, audio/mp3, audio/ogg, etc.
+                    mime_type="audio/wav"  
                 ),
                 types.Part(text=prompt)
             ]
@@ -159,7 +155,5 @@ def transcribe_audio(audio_bytes:bytes, language:str):
    
     
 
-
-    # return {"text": text_result,"language_used": language or "auto"}
 
 

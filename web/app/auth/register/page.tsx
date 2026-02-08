@@ -90,7 +90,7 @@ export default function RegisterPage() {
                 onChange={(e) => setFistname(e.target.value)}
                 required
                 className="w-full bg-white/10 border border-gemini-green/30 rounded-lg px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-gemini-green"
-                placeholder="First Name Last Name"
+                placeholder="First Name"
               />
             </div>
 
